@@ -1,4 +1,6 @@
 // Client side C/C++ program to demonstrate Socket programming
+#include <unistd.h>
+#include <arpa/inet.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -22,7 +24,7 @@ int main(int argc, char const *argv[])
         printf("Usage ./client [filename]\n");
         return 0;
     }
-    filename = argv[1];
+    filename = (char *)argv[1];
 
     if((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
         perror("Socket creation error");
