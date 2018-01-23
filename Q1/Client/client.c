@@ -25,6 +25,7 @@ int main(int argc, char const *argv[])
         printf("Usage ./client [filename]\n");
         return 0;
     }
+
     filename = (char *)argv[1];
 
     if((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
@@ -71,16 +72,19 @@ int main(int argc, char const *argv[])
     }
 
 
-    //handle errors if any.
+    //getting first 5 characters of buffer which is the status of response.
     strncpy(status, buffer, 5);
     status[5] = '\0';
 
+
+    //Handing 404 error message
     if(strcmp(status,"404\r\n") == 0) {
         printf("Invalid file name\n");
         close(sock);
         exit(EXIT_FAILURE);
     }
 
+    //Handing 400 error message
     if(strcmp(status, "400\r\n") == 0) {
         printf("Failed to read data from the file\n");
         close(sock);
@@ -97,6 +101,7 @@ int main(int argc, char const *argv[])
     }
 
     //Read 1024 bytes at once from the server and write to the file created/opened.
+    //valread > 5 because data of the file starts from the 5th character.
     while(valread > 5) {
         
         if(write(fd, &buffer[5], valread - 5) < 0) {
@@ -108,9 +113,11 @@ int main(int argc, char const *argv[])
 
         valread = read(sock, buffer, 1024);
 
-        //Handle errors if any.
+        //copying the response code to status string.
         strncpy(status, buffer, 5);
         status[5] = '\0';
+
+        //Handling 400 error message
         if(strcmp(status, "400\r\n") == 0) {
             printf("Failed to read data from the file\n");
             close(sock);

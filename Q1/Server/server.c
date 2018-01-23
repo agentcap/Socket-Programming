@@ -68,7 +68,7 @@ int main(int argc, char const *argv[]) {
         }
 
         // Reading file name requested by client.
-        // read infromation received into the buffer
+        // read first chunk of information received into the buffer
         valread = read(new_socket , buffer, 1024);
         if(valread == -1) {
             perror("failed to read filename from client");
@@ -79,43 +79,61 @@ int main(int argc, char const *argv[]) {
 
         // Opening the file requested by the client.
         int fd;
-        if ( (fd= open(buffer,O_RDONLY)) < 0) {
+        char *result = concat("Data/",buffer);
+        if ( (fd= open(result, O_RDONLY)) < 0) {
             perror("failed to open the requested file");
+
+            //sending 404 error response to the client and closing the socket.
             send(new_socket, "404\r\n", 5, 0);
             sleep(0.1);
             close(fd);
             close(new_socket);
+
             continue;
         }
 
-        int read_status = 1;
+        int read_status = 1;    //holds whether the it read the complete file.
 
         valread = read(fd,buffer,1019);
         buffer[valread] = '\0';
         if (valread == -1) {
             perror("Failed to read the requested file");
+
+            //sending 400 error resposne to the client and closing the socket.
             send(new_socket, "400\r\n", 5, 0);
             sleep(0.1);
             close(fd);
             close(new_socket);
+
             continue;
         }
 
-        // Read 1024 bytes at once and sending to the client.
+        // Read 1024 bytes of chunk at once and sending to the client.
+
+        //status holds 300 response code indicating success transfer from client to server.
         strcpy(status, "300\r\n");
         status[strlen(status)] = 0;
+
         while(valread) {
+
+            //concating the status with the buffer data of file and sending to the client
             char *result = concat(status, buffer);
             send(new_socket, result, strlen(result), 0);
             sleep(0.1);
+
+            //Reading 1019 bytes of data from the chunk at once.(5 bytes for response code)
             valread = read(fd, buffer, 1019);
             buffer[valread] = '\0';
+
             if (valread == -1) {
                 perror("Failed to read the requested file");
+
+                //sending 400 error resposne to the client and closing the socket.
                 send(new_socket, "400\r\n", 5, 0);
                 sleep(1);
                 close(fd);
                 close(new_socket);
+
                 read_status = -1;
                 break;
             }            
