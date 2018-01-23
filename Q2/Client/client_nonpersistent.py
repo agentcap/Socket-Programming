@@ -3,15 +3,26 @@ import json
 import time
 
 def get_request(type, data):
+	"""
+		This function takes type of request ,data and
+		return the json of the request.
+	"""
 	request = {}
 	request['type'] = type
 	request['data'] = data
 	return request
 
 def receive_file(s, filename):
+	"""
+		This function takes the socket and filename 
+		and save the content recived from the socket into
+		the filename given
+	"""
 	temp = s.recv(1024)
 	response = json.loads(temp)
 	status = response['status']
+
+	# If the status 404 It means wrong filename
 	if status == '404':
 		return response
 
@@ -30,6 +41,7 @@ def receive_file(s, filename):
 	file.close()
 
 def display_files(response):
+	""" This function takes response and print the file names"""
 	if response['status'] == '403':
 		print response['data']
 	else:
@@ -38,6 +50,7 @@ def display_files(response):
 			print(file)
 
 def display_status(response):
+	"""This function displays the status of the respons"""
 	print(response['data'])
 
 host = ""
@@ -52,6 +65,7 @@ while True:
 	s = socket.socket()             
 	s.connect(('10.42.0.106', port))
 
+	 # It the client request for list of files
 	if filename == '--list':
 		request = get_request('list','')
 		s.send(json.dumps(request))
