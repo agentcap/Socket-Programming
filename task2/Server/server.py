@@ -122,6 +122,7 @@ def server (host,port):
                 print(response)
                 conn.send(json.dumps(response))
             except Exception as e:
+                sleep(2)
                 print"Connection Broken with ", addr
 
 
