@@ -1,5 +1,6 @@
 import socket                   
 import json
+import time
 
 s = socket.socket()             
 host = ""
@@ -45,10 +46,13 @@ def display_files(response):
 def display_status(response):
 	print(response['data'])
 
+total_time = 0
+
 while True:
 	# Prompt the user to enter filename or --list
 	filename = raw_input('Enter a filename or --list to see the list of files available ')
 
+	start_time = time.clock()
 	if filename == 'disconnect':
 		request = get_request('disconnect', '')
 		s.send(json.dumps(request))
@@ -62,6 +66,10 @@ while True:
 		request = get_request('file-data',filename)
 		s.send(json.dumps(request))
 		response = receive_file(s, filename)
-		display_status(response)	
+		display_status(response)
+
+	total_time += (time.clock()-start_time)
+	print "Total time taken is ",total_time
+
 s.close()
 print('connection closed')

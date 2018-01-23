@@ -1,5 +1,6 @@
 import socket                   
 import json
+import time
 
 def get_request(type, data):
 	request = {}
@@ -42,10 +43,12 @@ def display_status(response):
 host = ""
 port = 60001
 
+total_time = 0
 
 while True:
 	# Prompt the user to enter filename or --list
 	filename = raw_input('Enter a filename or --list to see the list of files available ')
+	start_time = time.clock()
 	s = socket.socket()             
 	s.connect(('10.42.0.106', port))
 
@@ -60,6 +63,8 @@ while True:
 		response = receive_file(s, filename)
 		display_status(response)
 
+	total_time += (time.clock()-start_time)
 	s.close()
+	print "Total time taken is ", total_time
 	print('connection closed')
 	
