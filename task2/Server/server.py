@@ -14,7 +14,7 @@ def list_files (directory):
     except Exception as e:
         response["type"] = "mssg"
         response["status"] = "403"
-        response["data"] = "error5"
+        response["data"] = "Unable to get the list of files"
 
     return response
 
@@ -31,31 +31,6 @@ def error_handler(status,error):
     return response
 
 def send_file(conn,filename):
-    # file = open(share_dir+'/'+filename,'rb')
-    # data = file.read(1024-45)
-    # response = {}
-    # response["type"] = "file"
-    # response["status"] = "300"
-    # while (data):
-    #     # print("---------------")
-    #     response["data"] = data
-    #     # print(response)
-    #     # print("#########################")
-    #     # print(len(json.dumps(response)))
-    #     # print("#########################")
-    #     # print(len(json.dumps(response)))
-    #     conn.send(json.dumps(response))
-    #     time.sleep(0.1)
-    #     data = file.read(1024-45)
-
-    # response["type"] = "tran"
-    # response["status"] = "500"
-    # response["data"] = "File " + filename + " transfered successfully"
-
-    # file.close()
-
-    # return response
-
     try:
         file = open(share_dir+'/'+filename,'rb')
         data = file.read(1024-45)
@@ -74,15 +49,18 @@ def send_file(conn,filename):
 
         file.close()
     except Exception as e:
-        response = error_handler("404","error6")
+        response = error_handler("404","Failed to read the file")
 
     return response
 
 def server (host,port):
 
-    sock = socket.socket()
-    sock.bind((host, port))
-    sock.listen(5)
+    try:
+        sock = socket.socket()
+        sock.bind((host, port))
+        sock.listen(5)
+    except Exception as e:
+        print("Failed to create and bind the socket")
 
     print 'Server listening on port ',port
 
@@ -95,19 +73,19 @@ def server (host,port):
             try:
                 request = json.loads(conn.recv(1024))
             except Exception as e:
-                response = error_handler("404","error1")
+                response = error_handler("404","Invalid Request Format")
 
             try:
                 if request["type"] == "disconnect":
                     break
             except Exception as e:
-                response = error_handler("403","error2")
+                response = error_handler("403","Failed to Disconnect")
 
             try:
                 if request["type"] == "list":
                     response = list_files(share_dir)
             except Exception as e:
-                response = error_handler("403","error3")
+                response = error_handler("403","Request field 'type' is missing")
 
             try:
                 if request["type"] == "file-data":
@@ -116,7 +94,7 @@ def server (host,port):
                     else :
                         response = error_handler("404","Not a valid File name")
             except Exception as e:
-                response = error_handler("404","error4")
+                response = error_handler("404","Request field 'type' is missing")
 
             try:
                 print(response)
