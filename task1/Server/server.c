@@ -9,6 +9,15 @@
 #include <string.h>
 #include <netinet/in.h>
 #define PORT 8080
+
+char* concat(const char *s1, const char *s2)
+{
+    char *result = malloc(strlen(s1)+strlen(s2)+1);
+    strcpy(result, s1);
+    strcat(result, s2);
+    return result;
+}
+
 int main(int argc, char const *argv[]) {
     int server_fd, new_socket, valread;
     // sockaddr_in - references elements of the socket address. "in" for internet
@@ -16,6 +25,7 @@ int main(int argc, char const *argv[]) {
     int opt = 1;
     int addrlen = sizeof(address);
     char buffer[1024] = {0};
+    char status[7] = {0};
 
     // Creating socket file descriptor
     // creates socket, SOCK_STREAM is for TCP. SOCK_DGRAM for UDP
@@ -71,6 +81,8 @@ int main(int argc, char const *argv[]) {
         int fd;
         if ( (fd= open(buffer,O_RDONLY)) < 0) {
             perror("failed to open the requested file");
+            send(new_socket, "404\r\n", 5, 0);
+            sleep(0.1);
             close(fd);
             close(new_socket);
             continue;
@@ -78,20 +90,30 @@ int main(int argc, char const *argv[]) {
 
         int read_status = 1;
 
-        valread = read(fd,buffer,1024);
+        valread = read(fd,buffer,1019);
+        buffer[valread] = '\0';
         if (valread == -1) {
             perror("Failed to read the requested file");
+            send(new_socket, "400\r\n", 5, 0);
+            sleep(0.1);
             close(fd);
             close(new_socket);
             continue;
         }
 
         // Read 1024 bytes at once and sending to the client.
+        strcpy(status, "300\r\n");
+        status[strlen(status)] = 0;
         while(valread) {
-            send(new_socket,buffer,valread,0);
-            valread = read(fd,buffer,1024);
+            char *result = concat(status, buffer);
+            send(new_socket, result, strlen(result), 0);
+            sleep(0.1);
+            valread = read(fd, buffer, 1019);
+            buffer[valread] = '\0';
             if (valread == -1) {
                 perror("Failed to read the requested file");
+                send(new_socket, "400\r\n", 5, 0);
+                sleep(1);
                 close(fd);
                 close(new_socket);
                 read_status = -1;

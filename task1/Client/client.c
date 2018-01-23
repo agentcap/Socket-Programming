@@ -17,8 +17,9 @@ int main(int argc, char const *argv[])
     int sock = 0, valread;
     struct sockaddr_in serv_addr;
     char *filename;
-    char buffer[1024] = {0};
-
+    char buffer[1026] = {0};
+    char status[7] = {0};
+    
     //Getting file name from client.
     if(argc != 2) {
         printf("Usage ./client [filename]\n");
@@ -40,7 +41,7 @@ int main(int argc, char const *argv[])
 
     // Converts an IP address in numbers-and-dots notation into either a 
     // struct in_addr or a struct in6_addr depending on whether you specify AF_INET or AF_INET6.
-    if(inet_pton(AF_INET, "10.42.0.106", &serv_addr.sin_addr)<=0) {
+    if(inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr)<=0) {
         perror("Invalid address/ Address not supported");
         return -1;
     }
@@ -61,6 +62,31 @@ int main(int argc, char const *argv[])
     }
     printf("File name sent successfully\n");
 
+    // receive message back from server, into the buffer
+    valread = read( sock , buffer, 1024);  
+    if(valread < 0) {
+        close(sock);
+        perror("Unable to read message sent from server");
+        exit(EXIT_FAILURE);
+    }
+
+
+    //handle errors if any.
+    strncpy(status, buffer, 5);
+    status[5] = '\0';
+
+    if(strcmp(status,"404\r\n") == 0) {
+        printf("Invalid file name\n");
+        close(sock);
+        exit(EXIT_FAILURE);
+    }
+
+    if(strcmp(status, "400\r\n") == 0) {
+        printf("Failed to read data from the file\n");
+        close(sock);
+        exit(EXIT_FAILURE);
+    }
+
     // open/create a new file to write the data received from the buffer.
     int fd = open(filename, O_CREAT | O_WRONLY | O_TRUNC, 0600);
     if(fd < 0) {
@@ -70,24 +96,28 @@ int main(int argc, char const *argv[])
         exit(EXIT_FAILURE);
     }
 
-    // receive message back from server, into the buffer
-    valread = read( sock , buffer, 1024);  
-    if(valread < 0) {
-        close(sock);
-        close(fd);
-        perror("Unable to read message sent from server");
-        exit(EXIT_FAILURE);
-    }
-
     //Read 1024 bytes at once from the server and write to the file created/opened.
-    while(valread) {
-        if(write(fd, buffer, valread) < 0) {
+    while(valread > 5) {
+        
+        if(write(fd, &buffer[5], valread - 5) < 0) {
             close(sock);
             close(fd);
             perror("Unable to write to the file");
             exit(EXIT_FAILURE);
         }
-        valread = read(sock, buffer, 1024); 
+
+        valread = read(sock, buffer, 1024);
+
+        //Handle errors if any.
+        strncpy(status, buffer, 5);
+        status[5] = '\0';
+        if(strcmp(status, "400\r\n") == 0) {
+            printf("Failed to read data from the file\n");
+            close(sock);
+            close(fd);
+            exit(EXIT_FAILURE);
+        }
+ 
         if(valread < 0) {
 
             perror("Unable to read message sent from server");
