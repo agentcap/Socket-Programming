@@ -1,30 +1,67 @@
 import socket                   
+import json
 
 s = socket.socket()             
 host = ""
-port = 60001                
+port = 60001
 
 s.connect(('10.42.0.106', port))
-# s.send("Hello server!")
-while True:
-	filename = raw_input('Enter a filename ')
-	s.send(filename)
-	if filename == 'end':
-		break
-	with open(filename, 'wb') as f:
-	    print 'file opened'
-	    while True:
-	        print('receiving data...')
-	        data = s.recv(1024)
-	        code = data[0:3]
-	        if code == '500':
-	        	break
-	        data = data[3:]
-	        print('data=%s', (data))
-	        # write data to a file
-	        f.write(data)
 
-	f.close()
-	print('Successfully get the file')
+def get_request(type, data):
+	request = {}
+	request['type'] = type
+	request['data'] = data
+	return request
+
+def receive_file(s, filename):
+	temp = s.recv(1024)
+	response = json.loads(temp)
+	status = response['status']
+	if status == '404':
+		return response
+
+	with open(filename, 'wb') as file:
+	    while True:
+	        status = response['status']
+	        if status == '500':
+	        	file.close()
+	        	return response
+
+	        data = response['data']
+	        file.write(data)
+	        temp = s.recv(1024)
+	        response = json.loads(temp)
+
+	file.close()
+
+def display_files(response):
+	if response['status'] == '403':
+		print response['data']
+	else:
+		print('Files list')
+		for file in response['data']:
+			print(file)
+
+def display_status(response):
+	print(response['data'])
+
+while True:
+	# Prompt the user to enter filename or --list
+	filename = raw_input('Enter a filename or --list to see the list of files available ')
+
+	if filename == 'disconnect':
+		request = get_request('disconnect', '')
+		s.send(json.dumps(request))
+		break
+	elif filename == '--list':
+		request = get_request('list','')
+		s.send(json.dumps(request))
+		response = json.loads(s.recv(1024 + 45))
+		display_files(response)
+	else:
+		request = get_request('file-data',filename)
+		s.send(json.dumps(request))
+		response = receive_file(s, filename)
+		display_status(response)	
 s.close()
 print('connection closed')
