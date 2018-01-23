@@ -2,12 +2,6 @@ import socket
 import json
 import time
 
-s = socket.socket()             
-host = ""
-port = 60001
-
-s.connect(('10.42.0.106', port))
-
 def get_request(type, data):
 	request = {}
 	request['type'] = type
@@ -46,18 +40,19 @@ def display_files(response):
 def display_status(response):
 	print(response['data'])
 
+host = ""
+port = 60001
+
 total_time = 0
 
 while True:
 	# Prompt the user to enter filename or --list
 	filename = raw_input('Enter a filename or --list to see the list of files available ')
-
 	start_time = time.clock()
-	if filename == 'disconnect':
-		request = get_request('disconnect', '')
-		s.send(json.dumps(request))
-		break
-	elif filename == '--list':
+	s = socket.socket()             
+	s.connect(('10.42.0.106', port))
+
+	if filename == '--list':
 		request = get_request('list','')
 		s.send(json.dumps(request))
 		response = json.loads(s.recv(1024 + 45))
@@ -69,7 +64,7 @@ while True:
 		display_status(response)
 
 	total_time += (time.clock()-start_time)
-	print "Total time taken is ",total_time
-
-s.close()
-print('connection closed')
+	s.close()
+	print "Total time taken is ", total_time
+	print('connection closed')
+	
